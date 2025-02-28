@@ -94,8 +94,6 @@ def calculate_tat_test(df, tat_config):
 def main():
     st.title("Clean data with web app")
 
-    
-
     # Initialize session state variables
     if 'df_selected' not in st.session_state:
         st.session_state.df_selected = None
@@ -306,7 +304,7 @@ def main():
                         st.error(f"Lỗi khi xử lý dữ liệu: {e}")
 
                 # TAT Configuration
-                if "filtered_df" in st.session_state:
+                if "filtered_df" in st.session_state and st.session_state.filtered_df is not None:
                     st.subheader("Tính TAT theo mẫu bệnh phẩm")
                     tat_names = ["TAT1", "TAT2", "TAT3", "TAT4"]
                     if st.session_state.time_cols:
@@ -353,7 +351,7 @@ def main():
                 st.write("")
 
                     # TAT Configuration
-                if "filtered_df" in st.session_state:
+                if "filtered_df" in st.session_state and st.session_state.filtered_df is not None:
                     st.subheader("Tính TAT theo từng xét nghiệm")
                     tat_names = ["TATTest1", "TATTest2"]
 
