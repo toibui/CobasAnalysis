@@ -120,12 +120,12 @@ def main():
 
     if uploaded_file:
         if uploaded_file.name.endswith(".zip"):
-            combined_df = extract_zip(uploaded_file, encoding="utf-8", errors="replace")
+            combined_df = extract_zip(uploaded_file, encoding="utf-8")
         else:
             try:
-                combined_df = pd.read_csv(uploaded_file, encoding="utf-8")
+                combined_df = pd.read_csv(uploaded_file, encoding="latin1")
             except UnicodeDecodeError:
-                    combined_df = pd.read_csv(uploaded_file, encoding="latin1")
+                combined_df = pd.read_csv(uploaded_file, encoding="utf-8")
             except Exception as e:
                 st.error(f"Lỗi khi đọc file CSV: {e}")
                 return
