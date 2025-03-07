@@ -120,7 +120,7 @@ def main():
 
     if uploaded_file:
         if uploaded_file.name.endswith(".zip"):
-            combined_df = extract_zip(uploaded_file)
+            combined_df = extract_zip(uploaded_file, encoding="utf-8", errors="replace")
         else:
             try:
                 combined_df = pd.read_csv(uploaded_file)
