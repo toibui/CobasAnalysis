@@ -90,6 +90,15 @@ def calculate_tat_test(df, tat_config):
 
     return tat_results
 
+def convert_time(value):
+    value = str(value).strip()  # Xóa khoảng trắng đầu/cuối, tránh lỗi do dữ liệu bẩn
+    if pd.isna(value) or value in ["", "NaT"]:  # Bỏ qua giá trị NaN hoặc rỗng
+        return pd.NaT
+    if "AM" in value or "PM" in value:
+        return pd.to_datetime(value, format="%I:%M:%S %p", errors="coerce")
+    else:
+        return pd.to_datetime(value, format="%H:%M:%S", errors="coerce")
+
 
 def main():
     st.title("Clean data with web app")
@@ -252,10 +261,8 @@ def main():
                                             .drop(columns=["Count"], errors="ignore")
 
                         for col in st.session_state.time_cols:
-                            # Replace the datetime conversion line with this:
-                            # filtered_df[col] = pd.to_datetime(filtered_df[col], format='%Y-%m-%d %H:%M:%S', errors="coerce")
-                            filtered_df[col] = pd.to_datetime(filtered_df[col], format='%H:%M:%S', errors="coerce")
-                        
+                            filtered_df[col] = filtered_df[col].apply(convert_time)
+
                         # Create additional hour and date columns
                         if "FirstInstrumentSeenTime" in filtered_df:
                             filtered_df["hour"] = filtered_df["FirstInstrumentSeenTime"].dt.hour
