@@ -263,7 +263,6 @@ def main():
                         for col in st.session_state.time_cols:
                             filtered_df[col] = filtered_df[col].apply(convert_time)
 
-                        # fix 
                         if "FirstInstrumentSeenTime" in filtered_df:
                             filtered_df["FirstInstrumentSeenTime"] = pd.to_datetime(filtered_df["FirstInstrumentSeenTime"], errors="coerce")
                             filtered_df["hour"] = filtered_df["FirstInstrumentSeenTime"].dt.hour
