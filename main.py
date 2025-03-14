@@ -258,7 +258,7 @@ def main():
                             .merge(st.session_state.df_second_updated, on=["FirstInstrumentSeenID"], how="left")
                         # Filter valid data
                         # fix it
-                        filtered_df = merged_df[merged_df['Count'] == 1].drop(columns=["Count"], errors="ignore")
+                        filtered_df = merged_df.query("Count == 1 and SampleID.notna()").drop(columns=["Count"], errors="ignore")
 
                         for col in st.session_state.time_cols:
                             filtered_df[col] = filtered_df[col].apply(convert_time)
@@ -278,7 +278,7 @@ def main():
                         col_list = ["Department", "Site",'Category',"Site_Machine","Brand","System","GroupTest",'hour','date']
                         for col in col_list:
                             if filtered_df[col].isna().all():  
-                                filtered_df[col] = 1
+                                filtered_df[col] = "1"
                             filtered_df[col] = filtered_df[col].astype('str')
                         
                         grouped_df = (
