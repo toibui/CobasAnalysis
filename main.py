@@ -406,10 +406,10 @@ def main():
             st.markdown("---")  # Kẻ một dòng ngang
             st.write("🚀 **Tải xuống các file hoàn thành:**")
             # Download processed data
-            if 'tat_results_test' in st.session_state and st.session_state.tat_results is not None:
+            if 'tat_results_test' in st.session_state and st.session_state.tat_results_test is not None:
                 st.download_button(
                     "tbl_tat_test",
-                    st.session_state.tat_results.to_csv(index=False).encode("utf-8"),
+                    st.session_state.tat_results_test.to_csv(index=False).encode("utf-8"),
                     "tbl_tat_test.csv"
                 )
 
