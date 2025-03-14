@@ -3,6 +3,8 @@ import pandas as pd
 import zipfile
 import numpy as np
 from io import BytesIO
+import time
+# Điểm bắt đầu
 
 def extract_zip(uploaded_file):
     """Extract ZIP file and read all CSV files inside it."""
@@ -64,29 +66,44 @@ def calculate_tat_test(df, tat_config):
     df_tat = df.copy()
     tat_results = pd.DataFrame()
 
+    # Chuyển đổi các cột thời gian sang kiểu datetime một lần duy nhất
+    datetime_cols = set()
+    for config in tat_config.values():
+        datetime_cols.add(config["start"])
+        datetime_cols.add(config["end"])
+
+    for col in datetime_cols:
+        if col in df_tat.columns:
+            df_tat[col] = pd.to_datetime(df_tat[col])
+        else:
+            st.warning(f"Cột '{col}' không tồn tại trong dữ liệu.")
+
+    # Tính toán TAT cho từng cấu hình
     for tat_name, config in tat_config.items():
-        
         col_start = config["start"]
         col_end = config["end"]
         col_name = config["name"]
 
-        # Kiểm tra nếu cột tồn tại trước khi truy vấn
+        # Kiểm tra nếu cột tồn tại
         if col_start not in df_tat.columns or col_end not in df_tat.columns:
             st.warning(f"Cột '{col_start}' hoặc '{col_end}' không tồn tại trong dữ liệu. Bỏ qua {tat_name}.")
             continue
-        
+
         # Lấy dữ liệu cần thiết
         listCols = ['SampleID', 'TestAbbreviation', col_start, col_end]
         grouped_df = df_tat[listCols].copy()
 
-        # Chuyển đổi và tính toán thời gian
-        grouped_df[col_name] = grouped_df.apply(lambda row: time_diff_minutes(row, col_start, col_end), axis=1)
+        # Tính toán thời gian chênh lệch bằng phương thức vectorized
+        grouped_df[col_name] = (grouped_df[col_end] - grouped_df[col_start]).dt.total_seconds() / 60
 
         # Xóa cột thời gian sau khi tính toán
         grouped_df.drop(columns=[col_start, col_end], errors='ignore', inplace=True)
 
         # Hợp nhất kết quả vào tat_results
-        tat_results = tat_results.merge(grouped_df, on=["SampleID","TestAbbreviation"], how="outer") if not tat_results.empty else grouped_df
+        if tat_results.empty:
+            tat_results = grouped_df
+        else:
+            tat_results = tat_results.merge(grouped_df, on=["SampleID", "TestAbbreviation"], how="outer")
 
     return tat_results
 
@@ -98,7 +115,6 @@ def convert_time(value):
         return pd.to_datetime(value, format="%I:%M:%S %p", errors="coerce")
     else:
         return pd.to_datetime(value, format="%H:%M:%S", errors="coerce")
-
 
 def main():
     st.title("Clean data with web app")
@@ -184,8 +200,6 @@ def main():
 
             for col in list2:
                 df_selected[col] = None
-            if "Site" in list2:
-                df_selected["Site"] = 1
 
             # Process datetime columns
             st.session_state.df_selected = df_selected
@@ -202,21 +216,22 @@ def main():
                 st.session_state.second_excel_file = second_excel_file
 
         st.markdown("---")  # Kẻ một dòng ngang
+        with st.expander("TẢI TEMPLATE"):
 
-        # Download Excel templates
-        if st.session_state.excel_file: 
-            st.write("🚀 **Tải xuống file mẫu: Bổ sung thêm các thông tin:**")
-            st.download_button(label="Download",
-                            data=st.session_state.excel_file,
-                            file_name="template_addInformations.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")    
-            
-        if st.session_state.second_excel_file:
-            st.write("🚀 **Tải xuống file mẫu: Bổ sung thông tin chạy hệ hay không:**")    
-            st.download_button("Download", data=st.session_state.second_excel_file,
-                            file_name="template_TLA.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")    
-        st.markdown("---")  # Kẻ một dòng ngang
+            # Download Excel templates
+            if st.session_state.excel_file: 
+                st.write("🚀 **Tải xuống file mẫu: Bổ sung thêm các thông tin:**")
+                st.download_button(label="Download",
+                                data=st.session_state.excel_file,
+                                file_name="template_addInformations.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")    
+                
+            if st.session_state.second_excel_file:
+                st.write("🚀 **Tải xuống file mẫu: Bổ sung thông tin chạy hệ hay không:**")    
+                st.download_button("Download", data=st.session_state.second_excel_file,
+                                file_name="template_TLA.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")    
+            st.markdown("---")  # Kẻ một dòng ngang
 
         # Process uploaded Excel files
         if "df_selected" in st.session_state and st.session_state.df_selected is not None:
@@ -252,64 +267,65 @@ def main():
             st.write("🚀 **Xác nhận xử lý dữ liệu:**")
             if st.session_state.df_second_updated is not None and st.session_state.df_uploaded is not None:
                 if st.button("Analysis: "):
+                    start_time = time.time()
                     try:
+                        # Merge dataframes
                         merged_df = st.session_state.df_selected \
                             .merge(st.session_state.df_uploaded, on=["InstrumentName", "InstrumentModuleID"], how="left") \
                             .merge(st.session_state.df_second_updated, on=["FirstInstrumentSeenID"], how="left")
+
                         # Filter valid data
-                        # fix it
                         filtered_df = merged_df.query("Count == 1 and SampleID.notna()").drop(columns=["Count"], errors="ignore")
-                        merged_df.to_csv('Test.csv',sep=',', index = None)
 
+                        # Convert time columns
                         for col in st.session_state.time_cols:
-                            filtered_df[col] = filtered_df[col].apply(convert_time)
+                            # filtered_df[col] = filtered_df[col].apply(convert_time)
+                            filtered_df[col] = pd.to_datetime(filtered_df[col], errors='coerce')
 
+                        # Process datetime columns
                         if "FirstInstrumentSeenTime" in filtered_df:
-                            filtered_df["FirstInstrumentSeenTime"] = pd.to_datetime(filtered_df["FirstInstrumentSeenTime"], errors="coerce")
                             filtered_df["hour"] = filtered_df["FirstInstrumentSeenTime"].dt.hour
 
                         if "FirstInstrumentSeenDate" in filtered_df:
                             filtered_df["date"] = filtered_df["FirstInstrumentSeenDate"]
 
                         # Sort data
-                        filtered_df.sort_values(by=["FirstInstrumentSeenTime", "Category","GroupTest"], inplace=True)
+                        filtered_df.sort_values(by=["FirstInstrumentSeenTime", "Category", "GroupTest"], inplace=True)
+
+                        # Fill NaN and convert to string for grouping columns
+                        col_list = ["Department", "Site", "Category", "Site_Machine", "Brand", "System", "GroupTest", "hour", "date"]
+                        filtered_df[col_list] = filtered_df[col_list].fillna("1").astype(str)
 
                         # Group data
-                        col_list = ["Department", "Site",'Category',"Site_Machine","Brand","System","GroupTest",'hour','date']
-                        for col in col_list:
-                            if filtered_df[col].isna().all():  
-                                filtered_df[col] =  filtered_df[col].fillna("").astype(str)
-                            else:
-                                filtered_df[col] = filtered_df[col].fillna("").astype(str)
-                            filtered_df[col] = filtered_df[col].astype('object').astype('str')
-
-                        grouped_df = (
-                            filtered_df.groupby(["SampleID", "Department", "Site",])
-                            .agg({
-                                "Category": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
-                                "GroupTest": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
-                                "Automation": "first",
-                                "hour": "first",
-                                "date": "first",
-                                "Site_Machine": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
-                                "Brand": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
-                                "System": lambda x: ", ".join(sorted(set(x), key=list(x).index))
-                            })
-                            .reset_index()
-                        )
+                        grouped_df = filtered_df.groupby(["SampleID", "Department", "Site"]).agg({
+                            "Category": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
+                            "GroupTest": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
+                            "Automation": "first",
+                            "hour": "first",
+                            "date": "first",
+                            "Site_Machine": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
+                            "Brand": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
+                            "System": lambda x: ", ".join(sorted(set(x), key=list(x).index))
+                        }).reset_index()
 
                         # Count unique values
                         for col in ["System", "Brand", "Site_Machine"]:
                             grouped_df[f"count_{col.lower()}"] = grouped_df[col].apply(lambda x: len(str(x).split(",")))
 
                         # Remove duplicates
-                        filtered_df_dedup = filtered_df[["SampleID", "Category",'GroupTest', "Site_Machine", "Brand", "System",
-                                                            "InstrumentModuleID", "Module", "Electrode", "TestAbbreviation"]].drop_duplicates()
+                        filtered_df_dedup = filtered_df[["SampleID", "Category", "GroupTest", "Site_Machine", "Brand", "System",
+                                                        "InstrumentModuleID", "Module", "Electrode", "TestAbbreviation"]].drop_duplicates()
 
                         # Save to session state
                         st.session_state.filtered_df = filtered_df
                         st.session_state.grouped_df = grouped_df
                         st.session_state.filtered_df_dedup = filtered_df_dedup
+                        # Điểm kết thúc
+                        end_time = time.time()
+                        # Tính thời gian thực thi
+                        elapsed_time = end_time - start_time
+
+                        st.success(f"Thời gian thực thi: {bound(elapsed_time,0)} giây")
                         st.success("Xử lý hoàn tất!")
 
                     except Exception as e:
@@ -352,9 +368,15 @@ def main():
                     st.markdown("---")  # Kẻ một dòng ngang
                     st.write("🚀 **Xác nhận tính TAT theo từng sampleID:**")
                     if st.button("Calculate"):
+                        start_time = time.time()
+                        # Tính thời gian thực thi
+                        
                         if 'filtered_df' in st.session_state:
                             tat_results = calculate_tat(st.session_state.filtered_df, st.session_state.tat_config)
                             st.session_state.tat_results = tat_results
+                            end_time = time.time()
+                            elapsed_time = end_time - start_time
+                            st.success(f"Thời gian thực thi: {bound(elapsed_time,0)} giây")
                             st.write("Kết quả TAT:")
                             st.dataframe(st.session_state.tat_results)
                         else:
@@ -395,9 +417,13 @@ def main():
                     st.write("🚀 ***Xác nhận tính TAT theo từng xét nghiệm:***")
 
                     if st.button("Analysis"):
+                        start_time = time.time()
                         if 'filtered_df' in st.session_state:
                             tat_results_test = calculate_tat_test(st.session_state.filtered_df, st.session_state.tat_config_test)
                             st.session_state.tat_results_test = tat_results_test
+                            end_time = time.time()
+                            elapsed_time = end_time - start_time
+                            st.success(f"Thời gian thực thi: {round(elapsed_time,0)} giây")
                             st.write("Kết quả TAT:")
                             st.dataframe(st.session_state.tat_results_test)
                         else:
@@ -405,36 +431,37 @@ def main():
 
             st.markdown("---")  # Kẻ một dòng ngang
             st.write("🚀 **Tải xuống các file hoàn thành:**")
-            # Download processed data
-            if 'tat_results_test' in st.session_state and st.session_state.tat_results_test is not None:
-                st.download_button(
-                    "tbl_tat_test",
-                    st.session_state.tat_results_test.to_csv(index=False).encode("utf-8"),
-                    "tbl_tat_test.csv"
-                )
+            with st.expander("TẢI TEMPLATE"):
+                # Download processed data
+                if 'tat_results_test' in st.session_state and st.session_state.tat_results_test is not None:
+                    st.download_button(
+                        "tbl_tat_test",
+                        st.session_state.tat_results_test.to_csv(index=False).encode("utf-8"),
+                        "tbl_tat_test.csv"
+                    )
 
-            # Download processed data
-            if 'tat_results' in st.session_state and st.session_state.tat_results is not None:
-                st.download_button(
-                    "tbl_tat",
-                    st.session_state.tat_results.to_csv(index=False).encode("utf-8"),
-                    "tbl_tat.csv"
-                )
+                # Download processed data
+                if 'tat_results' in st.session_state and st.session_state.tat_results is not None:
+                    st.download_button(
+                        "tbl_tat",
+                        st.session_state.tat_results.to_csv(index=False).encode("utf-8"),
+                        "tbl_tat.csv"
+                    )
 
-            # Download processed data
-            if 'grouped_df' in st.session_state and st.session_state.grouped_df is not None:
-                st.download_button(
-                    "tbl_sample",
-                    st.session_state.grouped_df.to_csv(index=False).encode("utf-8"),
-                    "tbl_sample.csv"
-                )
-            
-            if 'filtered_df_dedup' in st.session_state and st.session_state.filtered_df_dedup is not None:
-                st.download_button(
-                    "tbl_test",
-                    st.session_state.filtered_df_dedup.to_csv(index=False).encode("utf-8"),
-                    "tbl_test.csv"
-                )
+                # Download processed data
+                if 'grouped_df' in st.session_state and st.session_state.grouped_df is not None:
+                    st.download_button(
+                        "tbl_sample",
+                        st.session_state.grouped_df.to_csv(index=False).encode("utf-8"),
+                        "tbl_sample.csv"
+                    )
+                
+                if 'filtered_df_dedup' in st.session_state and st.session_state.filtered_df_dedup is not None:
+                    st.download_button(
+                        "tbl_test",
+                        st.session_state.filtered_df_dedup.to_csv(index=False).encode("utf-8"),
+                        "tbl_test.csv"
+                    )
 
 if __name__ == "__main__":
     main()
