@@ -257,7 +257,7 @@ def main():
                             .merge(st.session_state.df_uploaded, on=["InstrumentName", "InstrumentModuleID"], how="left") \
                             .merge(st.session_state.df_second_updated, on=["FirstInstrumentSeenID"], how="left")
                         # Filter valid data
-                        filtered_df = merged_df.query("FirstInstrumentSeenTime.notna() & Count == 1") \
+                        filtered_df = merged_df.query("Count == 1") \
                                             .drop(columns=["Count"], errors="ignore")
 
                         for col in st.session_state.time_cols:
