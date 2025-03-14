@@ -263,11 +263,13 @@ def main():
                         for col in st.session_state.time_cols:
                             filtered_df[col] = filtered_df[col].apply(convert_time)
 
-                        # Create additional hour and date columns
+                        # fix 
                         if "FirstInstrumentSeenTime" in filtered_df:
+                            filtered_df["FirstInstrumentSeenTime"] = pd.to_datetime(filtered_df["FirstInstrumentSeenTime"], errors="coerce")
                             filtered_df["hour"] = filtered_df["FirstInstrumentSeenTime"].dt.hour
+
                         if "FirstInstrumentSeenDate" in filtered_df:
-                            filtered_df["FirstInstrumentSeenDate"] = pd.to_datetime(filtered_df["FirstInstrumentSeenDate"])
+                            filtered_df["FirstInstrumentSeenDate"] = pd.to_datetime(filtered_df["FirstInstrumentSeenDate"], errors="coerce")
                             filtered_df["date"] = filtered_df["FirstInstrumentSeenDate"].dt.date
 
                         # Sort data
