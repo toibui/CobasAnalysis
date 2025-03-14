@@ -325,7 +325,7 @@ def main():
                         # Tính thời gian thực thi
                         elapsed_time = end_time - start_time
 
-                        st.success(f"Thời gian thực thi: {bound(elapsed_time,0)} giây")
+                        st.success(f"Thời gian thực thi: {round(elapsed_time,0)} giây")
                         st.success("Xử lý hoàn tất!")
 
                     except Exception as e:
@@ -376,7 +376,7 @@ def main():
                             st.session_state.tat_results = tat_results
                             end_time = time.time()
                             elapsed_time = end_time - start_time
-                            st.success(f"Thời gian thực thi: {bound(elapsed_time,0)} giây")
+                            st.success(f"Thời gian thực thi: {round(elapsed_time,0)} giây")
                             st.write("Kết quả TAT:")
                             st.dataframe(st.session_state.tat_results)
                         else:
