@@ -148,9 +148,9 @@ def main():
             combined_df = extract_zip(uploaded_file, encoding="utf-8")
         else:
             try:
-                combined_df = pd.read_csv(uploaded_file, encoding="latin1")
+                combined_df = pd.read_csv(uploaded_file, encoding="latin1", low_memory=False)
             except UnicodeDecodeError:
-                combined_df = pd.read_csv(uploaded_file, encoding="utf-8")
+                combined_df = pd.read_csv(uploaded_file, encoding="utf-8", low_memory=False)
             except Exception as e:
                 st.error(f"Lỗi khi đọc file CSV: {e}")
                 return
@@ -317,7 +317,7 @@ def main():
                                                         "InstrumentModuleID", "Module", "Electrode", "TestAbbreviation"]].drop_duplicates()
                         
                         df_filtered = filtered_df_dedup[filtered_df_dedup.duplicated('SampleID', keep=False)]
-                        df_result = df_filtered.drop_duplicates('sid', keep='first')
+                        df_result = df_filtered.drop_duplicates('SampleID', keep='first')
 
                         # Save to session state
                         st.session_state.filtered_df = df_result
