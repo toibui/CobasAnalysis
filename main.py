@@ -312,17 +312,19 @@ def main():
                         for col in ["System", "Brand", "Site_Machine"]:
                             grouped_df[f"count_{col.lower()}"] = grouped_df[col].apply(lambda x: len(str(x).split(",")))
 
+
+                        # df_filtered_grouped =  grouped_df[ grouped_df.duplicated('SampleID', keep=False)]
+                        # df_result = df_filtered_grouped.drop_duplicates('SampleID', keep='first')
+
                         # Remove duplicates
                         filtered_df_dedup = filtered_df[["SampleID", "Category", "GroupTest", "Site_Machine", "Brand", "System",
                                                         "InstrumentModuleID", "Module", "Electrode", "TestAbbreviation"]].drop_duplicates()
-                        
-                        df_filtered_grouped =  grouped_df[ grouped_df.duplicated('SampleID', keep=False)]
-                        df_result = df_filtered_grouped.drop_duplicates('SampleID', keep='first')
 
                         # Save to session state
                         st.session_state.filtered_df = filtered_df
-                        st.session_state.grouped_df = df_result
+                        st.session_state.grouped_df = grouped_df
                         st.session_state.filtered_df_dedup = filtered_df_dedup
+
                         # Điểm kết thúc
                         end_time = time.time()
                         # Tính thời gian thực thi
