@@ -315,9 +315,12 @@ def main():
                         # Remove duplicates
                         filtered_df_dedup = filtered_df[["SampleID", "Category", "GroupTest", "Site_Machine", "Brand", "System",
                                                         "InstrumentModuleID", "Module", "Electrode", "TestAbbreviation"]].drop_duplicates()
+                        
+                        df_filtered = filtered_df_dedup[filtered_df_dedup.duplicated('SampleID', keep=False)]
+                        df_result = df_filtered.drop_duplicates('sid', keep='first')
 
                         # Save to session state
-                        st.session_state.filtered_df = filtered_df
+                        st.session_state.filtered_df = df_result
                         st.session_state.grouped_df = grouped_df
                         st.session_state.filtered_df_dedup = filtered_df_dedup
                         # Điểm kết thúc
