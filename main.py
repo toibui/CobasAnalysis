@@ -6,15 +6,18 @@ from io import BytesIO
 import time
 # Điểm bắt đầu
 
-def extract_zip(uploaded_file):
+def extract_zip(uploaded_file, encoding='utf-8'):
     """Extract ZIP file and read all CSV files inside it."""
     try:
         with zipfile.ZipFile(uploaded_file, "r") as z:
-            dfs = [pd.read_csv(z.open(f)) for f in z.namelist() if f.endswith(".csv")]
+            # Read all CSV files in the ZIP archive with the specified encoding
+            dfs = [pd.read_csv(z.open(f), encoding=encoding) for f in z.namelist() if f.endswith(".csv")]
+        # Concatenate all DataFrames into one if there are any
         return pd.concat(dfs, ignore_index=True) if dfs else None
     except Exception as e:
         st.error(f"Lỗi khi giải nén file ZIP: {e}")
         return None
+#
 
 def create_excel_template(df, key_columns, extra_columns):
     """Create an Excel file with key columns and additional headers."""
@@ -146,11 +149,11 @@ def main():
     if uploaded_file:
         if uploaded_file.name.endswith(".zip"):
             try:
-                combined_df = extract_zip(uploaded_file, encoding="latin1")
-            except UnicodeDecodeError:
-                combined_df = extract_zip(uploaded_file, encoding="utf-8")
+                combined_df = extract_zip(uploaded_file)
+            # except UnicodeDecodeError:
+            #     combined_df = extract_zip(uploaded_file, encoding="utf-8")
             except Exception as e:
-                st.error(f"Lỗi khi đọc file zip: {e}")
+                st.error(f"Lỗi khi đọc file CSV: {e}")
                 return
         else:
             try:
