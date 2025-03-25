@@ -145,7 +145,13 @@ def main():
 
     if uploaded_file:
         if uploaded_file.name.endswith(".zip"):
-            combined_df = extract_zip(uploaded_file, encoding="utf-8")
+            try:
+                combined_df = extract_zip(uploaded_file, encoding="latin1")
+            except UnicodeDecodeError:
+                combined_df = extract_zip(uploaded_file, encoding="utf-8")
+            except Exception as e:
+                st.error(f"Lỗi khi đọc file zip: {e}")
+                return
         else:
             try:
                 combined_df = pd.read_csv(uploaded_file, encoding="latin1", low_memory=False)
@@ -312,11 +318,6 @@ def main():
                         for col in ["System", "Brand", "Site_Machine"]:
                             grouped_df[f"count_{col.lower()}"] = grouped_df[col].apply(lambda x: len(str(x).split(",")))
 
-                        # print(grouped_df)
-                        # df_filtered_grouped = grouped_df[grouped_df.duplicated('SampleID', keep=False)] 
-                        # df_result = df_filtered_grouped.drop_duplicates(subset='SampleID', keep='first')
-                        # print(df_filtered_grouped)
-
                         # Remove duplicates
                         filtered_df_dedup = filtered_df[["SampleID", "Category", "GroupTest", "Site_Machine", "Brand", "System",
                                                         "InstrumentModuleID", "Module", "Electrode", "TestAbbreviation"]].drop_duplicates()
@@ -324,7 +325,6 @@ def main():
                         # Save to session state
                         st.session_state.filtered_df = filtered_df
                         st.session_state.grouped_df = grouped_df
-                        # st.session_state.grouped_df = df_result
                         st.session_state.filtered_df_dedup = filtered_df_dedup
 
                         # Điểm kết thúc
