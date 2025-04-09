@@ -19,6 +19,8 @@ def extract_zip(uploaded_file, encoding='utf-8'):
         return None
 #
 
+
+
 def create_excel_template(df, key_columns, extra_columns):
     """Create an Excel file with key columns and additional headers."""
     df_template = df[key_columns].drop_duplicates().dropna().copy()
@@ -296,13 +298,14 @@ def main():
                             filtered_df["hour"] = filtered_df["FirstInstrumentSeenTime"].dt.hour
 
                         if "FirstInstrumentSeenDate" in filtered_df:
-                            filtered_df["date"] = filtered_df["FirstInstrumentSeenDate"]
+                            # filtered_df["date"] = filtered_df["FirstInstrumentSeenDate"]
+                            filtered_df["date"] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'], dayfirst=True, errors='coerce')
 
                         # Sort data
                         filtered_df.sort_values(by=["FirstInstrumentSeenTime", "Category", "GroupTest"], inplace=True)
 
                         # Fill NaN and convert to string for grouping columns
-                        col_list = ["Department", "Site", "Category", "Site_Machine", "Brand", "System", "GroupTest", "hour", "date"]
+                        col_list = ["Department", "Site", "Category", "Site_Machine", "Brand", "System", "GroupTest", "hour"]
                         filtered_df[col_list] = filtered_df[col_list].fillna("1").astype(str)
 
                         # Group data
@@ -311,7 +314,7 @@ def main():
                             "GroupTest": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
                             "Automation": "first",
                             "hour": "first",
-                            "date": "first",
+                            "date": "min",
                             "Site_Machine": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
                             "Brand": lambda x: ", ".join(sorted(set(x), key=list(x).index)),
                             "System": lambda x: ", ".join(sorted(set(x), key=list(x).index))
