@@ -6,7 +6,7 @@ from io import BytesIO
 import time
 # Điểm bắt đầu
 
-def extract_zip(uploaded_file, encoding='utf-8'):
+def extract_zip(uploaded_file, encoding='latin1'):
     """Extract ZIP file and read all CSV files inside it."""
     try:
         with zipfile.ZipFile(uploaded_file, "r") as z:
