@@ -11,7 +11,7 @@ def extract_zip(uploaded_file, encoding='latin1'):
     try:
         with zipfile.ZipFile(uploaded_file, "r") as z:
             # Read all CSV files in the ZIP archive with the specified encoding
-            dfs = [pd.read_csv(z.open(f), encoding=encoding) for f in z.namelist() if f.endswith(".csv")]
+            dfs = [pd.read_csv(z.open(f), encoding=encoding, on_bad_lines='skip') for f in z.namelist() if f.endswith(".csv")]
         # Concatenate all DataFrames into one if there are any
         return pd.concat(dfs, ignore_index=True) if dfs else None
     except Exception as e:
