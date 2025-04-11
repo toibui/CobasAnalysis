@@ -299,7 +299,8 @@ def main():
 
                         if "FirstInstrumentSeenDate" in filtered_df:
                             # filtered_df["date"] = filtered_df["FirstInstrumentSeenDate"]
-                            filtered_df["date"] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'], dayfirst=True, errors='coerce')
+                            filtered_df['FirstInstrumentSeenDate'] = filtered_df['FirstInstrumentSeenDate'].str.strip()
+                            filtered_df["date"] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'],infer_datetime_format=True, errors='coerce')
 
                         # Sort data
                         filtered_df.sort_values(by=["FirstInstrumentSeenTime", "Category", "GroupTest"], inplace=True)
