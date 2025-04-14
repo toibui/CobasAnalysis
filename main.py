@@ -204,6 +204,7 @@ def main():
         st.divider()
 
         uploaded_file = st.file_uploader("Tải lên file danh sách cột đã tải", type="txt")
+## upload file
 
         if uploaded_file is not None:
             content = uploaded_file.read()
