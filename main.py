@@ -1,9 +1,11 @@
 import streamlit as st
 import pandas as pd
+import json
 import zipfile
 import numpy as np
 from io import BytesIO
 import time
+from dateutil.parser import parse
 # Điểm bắt đầu
 
 def extract_zip(uploaded_file, encoding='latin1'):
@@ -18,8 +20,6 @@ def extract_zip(uploaded_file, encoding='latin1'):
         st.error(f"Lỗi khi giải nén file ZIP: {e}")
         return None
 #
-
-
 
 def create_excel_template(df, key_columns, extra_columns):
     """Create an Excel file with key columns and additional headers."""
@@ -143,6 +143,8 @@ def main():
         st.session_state.grouped_df = None
     if 'filtered_df_dedup' not in st.session_state:
         st.session_state.filtered_df_dedup = None
+    if 'selected_text' not in st.session_state:
+        st.session_state.selected_text = {}
 
     # File uploader for ZIP or CSV
     st.write("🚀 **Upload file dữ liệu gốc lên:**")    
@@ -201,12 +203,22 @@ def main():
                 used_columns.add(selected_value)
         st.divider()
 
+        uploaded_file = st.file_uploader("Tải lên file danh sách cột đã tải", type="txt")
+
+        if uploaded_file is not None:
+            content = uploaded_file.read()
+            selected_columns = json.loads(content)
+            st.write("selected_columns đã được nạp:", selected_columns)
+            st.divider()
+        
         st.write("📌 ***Nếu hoàn thành hãy nhấn nút Finished:***")
         if st.button("Finished"):
             list1 = list(selected_columns.values())
             list2 = [col for col in required_columns if col not in selected_columns]
 
             df_selected = combined_df[list1].copy()
+            st.session_state.selected_text = json.dumps(selected_columns, indent=4)
+
             df_selected.rename(columns={v: k for k, v in selected_columns.items()}, inplace=True)
 
             for col in list2:
@@ -241,7 +253,16 @@ def main():
                 st.write("🚀 **Tải xuống file mẫu: Bổ sung thông tin chạy hệ hay không:**")    
                 st.download_button("Download", data=st.session_state.second_excel_file,
                                 file_name="template_TLA.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")    
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")  
+
+            if st.session_state.selected_text:
+                st.write("🚀 **Tải xuống file mẫu: Bổ sung thông tin cấu hình cột:**")
+                st.download_button(
+                    label="Tải xuống danh sách cột đã khớp",
+                    data=st.session_state.selected_text,
+                    file_name="selected_columns.txt",
+                    mime="text/plain"
+                )
             st.markdown("---")  # Kẻ một dòng ngang
 
         # Process uploaded Excel files
@@ -298,9 +319,16 @@ def main():
                             filtered_df["hour"] = filtered_df["FirstInstrumentSeenTime"].dt.hour
 
                         if "FirstInstrumentSeenDate" in filtered_df:
-                            # filtered_df["date"] = filtered_df["FirstInstrumentSeenDate"]
-                            filtered_df['FirstInstrumentSeenDate'] = filtered_df['FirstInstrumentSeenDate'].str.strip()
-                            filtered_df["date"] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'],infer_datetime_format=True, errors='coerce')
+                            # Lấy một mẫu không rỗng để kiểm tra
+                            sample = filtered_df['FirstInstrumentSeenDate'].dropna().iloc[0]
+
+                            # Kiểm tra xem định dạng là DD-MM-YYYY hay YYYY-MM-DD
+                            if len(sample.split('-')[0]) == 4:
+                                # YYYY-MM-DD => dayfirst=False
+                                filtered_df['date'] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'], dayfirst=False, errors='coerce')
+                            else:
+                                # DD-MM-YYYY => dayfirst=True
+                                filtered_df['date'] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'], dayfirst=True, errors='coerce')
 
                         # Sort data
                         filtered_df.sort_values(by=["FirstInstrumentSeenTime", "Category", "GroupTest"], inplace=True)
