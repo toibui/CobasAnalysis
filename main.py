@@ -6,6 +6,7 @@ import numpy as np
 from io import BytesIO
 import time
 from dateutil.parser import parse
+
 # Điểm bắt đầu
 
 def extract_zip(uploaded_file, encoding='latin1'):
@@ -309,28 +310,23 @@ def main():
 
                         # Filter valid data
                         filtered_df = merged_df.query("Count == 1 and SampleID.notna()").drop(columns=["Count"], errors="ignore")
-
+                        print(merged_df[['InstrumentName','InstrumentModuleID']])
+                        print(st.session_state.df_uploaded[['InstrumentName','InstrumentModuleID']])
                         # Convert time columns
                         for col in st.session_state.time_cols:
                             # filtered_df[col] = filtered_df[col].apply(convert_time)
                             filtered_df[col] = pd.to_datetime(filtered_df[col], errors='coerce')
-
+                        
                         # Process datetime columns
                         if "FirstInstrumentSeenTime" in filtered_df:
                             filtered_df["hour"] = filtered_df["FirstInstrumentSeenTime"].dt.hour
-
+                        
                         if "FirstInstrumentSeenDate" in filtered_df:
                             # Lấy một mẫu không rỗng để kiểm tra
                             sample = filtered_df['FirstInstrumentSeenDate'].dropna().iloc[0]
-
                             # Kiểm tra xem định dạng là DD-MM-YYYY hay YYYY-MM-DD
-                            if len(sample.split('-')[0]) == 4:
                                 # YYYY-MM-DD => dayfirst=False
-                                filtered_df['date'] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'], dayfirst=False, errors='coerce')
-                            else:
-                                # DD-MM-YYYY => dayfirst=True
-                                filtered_df['date'] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'], dayfirst=True, errors='coerce')
-
+                            filtered_df['date'] = pd.to_datetime(filtered_df['FirstInstrumentSeenDate'], dayfirst=False, errors='coerce')   
                         # Sort data
                         filtered_df.sort_values(by=["FirstInstrumentSeenTime", "Category", "GroupTest"], inplace=True)
 
